@@ -530,12 +530,10 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, const CTransaction& tx, unsigned
 
 bool CheckCoinStakeTimestamp(int nHeight, int64_t nTimeBlock, int64_t nTimeTx)
 {
-    if (GetPOSProtocolVersion(nHeight) == 2) {
-        LogPrintf("%s: %u/%u : %u\n", __func__, nTimeBlock, nTimeTx, STAKE_TIMESTAMP_MASK);
+    if (GetPOSProtocolVersion(nHeight) == 2)
         return (nTimeBlock == nTimeTx) && ((nTimeTx & STAKE_TIMESTAMP_MASK) == 0);
-    } else {
+    else
         return (nTimeBlock == nTimeTx);
-    }
 }
 
 unsigned int GetStakeModifierChecksum(const CBlockIndex* pindex)

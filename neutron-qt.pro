@@ -155,7 +155,7 @@ contains(USE_O3, 1) {
 }
 
 QMAKE_CXXFLAGS_WARN_ON = -fdiagnostics-show-option -Wall -Wextra -Wno-unused-local-typedefs -Wno-ignored-qualifiers -Wformat -Wformat-security -Wno-unused-parameter -Wstack-protector
-QMAKE_CXXFLAGS_WARN_ON += -Wno-unused-variable -fpermissive -Wno-format-extra-args -Wno-deprecated-declarations
+QMAKE_CXXFLAGS_WARN_ON += -Wno-unused-variable -fpermissive -Wno-format-extra-args
 
 windows:QMAKE_CXXFLAGS_WARN_ON += -Wno-cpp -Wno-maybe-uninitialized
 !macx:QMAKE_CXXFLAGS_WARN_ON += -Wno-unused-local-typedefs
@@ -193,7 +193,6 @@ HEADERS += src/activemasternode.h \
     src/netaddress.h \
     src/netbase.h \
     src/noui.h \
-    src/opensslcompat.h \
     src/pbkdf2.h \
     src/protocol.h \
     src/random.h \
@@ -299,7 +298,6 @@ SOURCES += src/activemasternode.cpp \
     src/netaddress.cpp \
     src/netbase.cpp \
     src/noui.cpp \
-    src/opensslcompat.c \
     src/protocol.cpp \
     src/pbkdf2.cpp \
     src/random.cpp \

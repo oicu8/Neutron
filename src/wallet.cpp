@@ -1028,69 +1028,72 @@ int CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, bool fUpdate)
     return ret;
 }
 
+int CWallet::ScanForWalletTransaction(const uint256& hashTx)
+{
+    CTransaction tx;
+    tx.ReadFromDisk(COutPoint(hashTx, 0));
+    if (AddToWalletIfInvolvingMe(tx, NULL, true, true))
+        return 1;
+    return 0;
+}
+
 void CWallet::ReacceptWalletTransactions()
 {
     CTxDB txdb("r");
     bool fRepeat = true;
-    std::vector<CDiskTxPos> vMissingTx;
 
     while (fRepeat)
     {
+        LOCK(cs_wallet);
+        fRepeat = false;
+        vector<CDiskTxPos> vMissingTx;
+
+        for (auto& item : mapWallet)
         {
-            LOCK(cs_wallet);
-            fRepeat = false;
+            CWalletTx& wtx = item.second;
 
-            for (auto& item : mapWallet)
+            if ((wtx.IsCoinBase() && wtx.IsSpent(0)) || (wtx.IsCoinStake() && wtx.IsSpent(1)))
+                continue;
+
+            CTxIndex txindex;
+            bool fUpdated = false;
+
+            if (txdb.ReadTxIndex(wtx.GetHash(), txindex))
             {
-                CWalletTx& wtx = item.second;
-
-                if ((wtx.IsCoinBase() && wtx.IsSpent(0)) || (wtx.IsCoinStake() && wtx.IsSpent(1)))
+                // Update fSpent if a tx got spent somewhere else by a copy of wallet.dat
+                if (txindex.vSpent.size() != wtx.vout.size())
+                {
+                    LogPrintf("ERROR: ReacceptWalletTransactions() : txindex.vSpent.size() %u != wtx.vout.size() %u\n", txindex.vSpent.size(), wtx.vout.size());
                     continue;
+                }
 
-                CTxIndex txindex;
-                bool fUpdated = false;
-
-                if (txdb.ReadTxIndex(wtx.GetHash(), txindex))
+                for (unsigned int i = 0; i < txindex.vSpent.size(); i++)
                 {
-                    // Update fSpent if a tx got spent somewhere else by a copy of wallet.dat
-                    if (txindex.vSpent.size() != wtx.vout.size())
-                    {
-                        LogPrintf("%s : [ERROR] txindex.vSpent.size() %u != wtx.vout.size() %u\n", __func__,
-                                  txindex.vSpent.size(), wtx.vout.size());
+                    if (wtx.IsSpent(i))
                         continue;
-                    }
 
-                    for (unsigned int i = 0; i < txindex.vSpent.size(); i++)
+                    if (!txindex.vSpent[i].IsNull() && IsMine(wtx.vout[i]))
                     {
-                        if (wtx.IsSpent(i))
-                            continue;
-
-                        if (!txindex.vSpent[i].IsNull() && IsMine(wtx.vout[i]))
-                        {
-                            wtx.MarkSpent(i);
-                            fUpdated = true;
-                            vMissingTx.push_back(txindex.vSpent[i]);
-                        }
-                    }
-
-                    if (fUpdated)
-                    {
-                        LogPrintf("%s : Found spent coin %s TC %s\n", __func__,
-                                  FormatMoney(wtx.GetCredit()).c_str(), wtx.GetHash().ToString().c_str());
-
-                        wtx.MarkDirty();
-                        wtx.WriteToDisk();
+                        wtx.MarkSpent(i);
+                        fUpdated = true;
+                        vMissingTx.push_back(txindex.vSpent[i]);
                     }
                 }
-                else
+
+                if (fUpdated)
                 {
-                    // Re-accept any txes of ours that aren't already in a block
-                    if (!(wtx.IsCoinBase() || wtx.IsCoinStake()))
-                        wtx.AcceptWalletTransaction(txdb);
+                    LogPrintf("ReacceptWalletTransactions found spent coin %s TC %s\n", FormatMoney(wtx.GetCredit()).c_str(), wtx.GetHash().ToString().c_str());
+                    wtx.MarkDirty();
+                    wtx.WriteToDisk();
                 }
-	    }
+            }
+            else
+            {
+                // Re-accept any txes of ours that aren't already in a block
+                if (!(wtx.IsCoinBase() || wtx.IsCoinStake()))
+                    wtx.AcceptWalletTransaction(txdb);
+            }
         }
-
         if (!vMissingTx.empty())
         {
             // TODO: optimize this to scan just part of the block chain?
