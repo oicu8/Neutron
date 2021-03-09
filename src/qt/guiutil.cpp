@@ -249,7 +249,7 @@ void discordButtonLink()
 
 void explorerButtonLink()
 {
-        QDesktopServices::openUrl(QUrl("https://openchains.info/coin/neutron/blocks"));
+        QDesktopServices::openUrl(QUrl("http://ntrn.explorer.cryptotools.pw:3001/"));
 }
 
 void bootstrapButtonLink()
@@ -259,7 +259,7 @@ void bootstrapButtonLink()
 
 void supportButtonLink()
 {
-        QDesktopServices::openUrl(QUrl("https://neutroncoin.com/setup/startup"));
+        QDesktopServices::openUrl(QUrl("https://www.neutroncoin.com/support"));
 }
 
 void repoButtonLink()
